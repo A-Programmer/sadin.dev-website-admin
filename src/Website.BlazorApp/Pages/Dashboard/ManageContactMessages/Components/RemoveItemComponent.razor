@@ -1,0 +1,56 @@
+@inject IGeneralHttpServices GeneralHttpServices
+@namespace Website.BlazorApp.Pages.Dashboard.ManageContactMessages.Components
+
+<div class="modal fade show" id="removeModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">@Title</h4>
+                <button type="button" class="close"
+                        @onclick="async () => await OnCloseDialog.InvokeAsync()">&times;</button>
+            </div>
+            <div class="modal-body">
+                @Message
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary" @onclick=@OnSubmitRemoveDialogForm>OK</button>
+                <button type="button" class="btn btn-secondary" @onclick="async () => await OnCloseDialog.InvokeAsync()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Guid EntityIdToRemove { get; set; }
+    [Parameter] public string Title { get; set; }
+    [Parameter] public string Message { get; set; }
+    [Parameter] public EventCallback OnCloseRemoveItemDialogCallback { get; set; }
+    [Parameter] public EventCallback RefereshGridMethodOnSuccess { get; set; }
+    [Parameter] public EventCallback OnApiError { get; set; }
+    [Parameter] public EventCallback OnException { get; set; }
+    [Parameter] public EventCallback OnCloseDialog { get; set; }
+    
+    private async Task OnSubmitRemoveDialogForm()
+    {
+        try
+        {
+            var removeResult = await GeneralHttpServices.Delete($"/api/SecureContactUs/{EntityIdToRemove}");
+            if (removeResult)
+            {
+                await RefereshGridMethodOnSuccess.InvokeAsync();
+            }
+            else
+            {
+                await OnApiError.InvokeAsync();
+                await OnCloseDialog.InvokeAsync();
+            }
+            await OnCloseDialog.InvokeAsync();
+        }
+        catch (Exception e)
+        {
+            await OnCloseDialog.InvokeAsync();
+            await OnException.InvokeAsync();
+        }
+        await OnCloseDialog.InvokeAsync();
+    }
+}

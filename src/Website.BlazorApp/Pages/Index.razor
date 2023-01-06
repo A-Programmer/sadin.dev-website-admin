@@ -1,0 +1,22 @@
+@page "/index"
+@attribute [Authorize]
+
+@layout WebsiteLayout
+
+<PageHeader>
+    <PageHeaderTitle Title="Home Page"></PageHeaderTitle>
+</PageHeader>
+<h1>Website Index</h1>
+
+<AuthorizeView>
+    <h1>
+        This is authorized content.
+    </h1>
+</AuthorizeView>
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+}

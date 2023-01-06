@@ -1,0 +1,93 @@
+@inject IGeneralHttpServices GeneralHttpServices
+@namespace Website.BlazorApp.Pages.Dashboard.ManageContactMessages.Components
+
+    <div class="modal fade show" id="addModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">@Title</h4>
+                    <button type="button" class="close"
+                            @onclick="async () => await OnCloseDialog.InvokeAsync()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="MessageViewModel"
+                              OnValidSubmit="OnSubmitForm">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label for="fullName">Full Name</label>
+                                    <InputText @bind-Value="MessageViewModel.FullName" class="form-control"></InputText>
+                                  </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label for="email">Email</label>
+                                    <InputText @bind-Value="MessageViewModel.Email" class="form-control"></InputText>
+                                  </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label for="phoneNumber">Phone Number</label>
+                                    <InputText @bind-Value="MessageViewModel.PhoneNumber" class="form-control"></InputText>
+                                  </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label for="title">Title</label>
+                                    <InputText @bind-Value="MessageViewModel.Title" class="form-control"></InputText>
+                                  </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label>Message content</label>
+                                    <InputTextArea @bind-Value="MessageViewModel.Content" class="form-control"></InputTextArea>
+                                  </div>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" @onclick=@OnSubmitForm>OK</button>
+                    <button type="button" class="btn btn-secondary" @onclick="async () => await OnCloseDialog.InvokeAsync()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+@code {
+    private CreateMessageViewModel MessageViewModel { get; set; } = new();
+    [Parameter] public string Title { get; set; }
+    [Parameter] public EventCallback RefereshGridMethodOnSuccess { get; set; }
+    [Parameter] public EventCallback OnApiError { get; set; }
+    [Parameter] public EventCallback OnException { get; set; }
+    [Parameter] public EventCallback OnCloseDialog { get; set; }
+    
+    private async Task OnSubmitForm()
+    {
+        try
+        {
+            var addResult = await GeneralHttpServices.Add<CreateMessageViewModel>(MessageViewModel, "/api/ContactUs");
+            if (addResult)
+            {
+                await RefereshGridMethodOnSuccess.InvokeAsync();
+            }
+            else
+            {
+                await OnApiError.InvokeAsync();
+            }
+        }
+        catch (Exception e)
+        {
+            await OnException.InvokeAsync();
+        }
+        await OnCloseDialog.InvokeAsync();
+    }
+}

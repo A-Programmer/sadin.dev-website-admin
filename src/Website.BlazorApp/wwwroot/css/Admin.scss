@@ -1,0 +1,21 @@
+//Cards
+.card-search-bar {
+  float: left !important;
+  margin-bottom: 0 !important;
+}
+.card-tools {
+  float: right !important;
+  margin-right: 0 !important;
+  margin-left: -0.625rem !important;
+  margin-bottom: 0 !important;
+}
+.card-header::after, .card-body::after, .card-footer::after {
+  display: block;
+  clear: both;
+  content: "";
+}
+
+// Pagination
+.pagination {
+  display: inline-flex;
+}

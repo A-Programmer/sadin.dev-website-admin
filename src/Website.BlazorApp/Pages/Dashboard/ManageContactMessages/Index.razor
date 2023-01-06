@@ -1,0 +1,453 @@
+@namespace Website.BlazorApp.Pages.Dashboard.ManageContactMessages
+@page "/Dashboard/ManageContactMessages/"
+@using KSFramework.Utilities
+@using Website.BlazorApp.Pages.Dashboard.ManageContactMessages.Components
+@layout DashboardLayout
+@inject IGeneralHttpServices GeneralHttpServices;
+
+<PageHeader>
+    <PageHeaderTitle Title="Contact Messages"></PageHeaderTitle>
+</PageHeader>
+
+@* <ContentHeader> *@
+@*     <Header> *@
+@*         <ContentHeaderBreadcrum PathName="Manage Contact Messages" PageName="Contact Messages" PathHref="/Dashboard/ManageContactMessages/"></ContentHeaderBreadcrum> *@
+@*     </Header> *@
+@* </ContentHeader> *@
+<br/>
+<br/>
+<Loading IsLoading="@_isLoading">
+    <ContentMain>
+        <Container Type="ContainerType.Fluid">
+            <Row>
+                <Column Classes="col.md._12">
+                    <Card Type="CardType.Default"
+                              Styles="new[] { CardStyle.Outline }">
+                        <Title>
+                            <div class="card-search-bar">
+                                <form>
+                                    <div class="input-group input-group-sm">
+                                        <input @bind-value="_pageInfo.SearchTerm" type="text" class="form-control float-right" placeholder="Search...">
+                                        <div class="input-group-append">
+                                            <button @onclick="GetData" type="button" class="btn btn-default"><i class="fas fa-search"></i></button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <div class="card-tools">
+                                <button type="button" @onclick="OpenAddDialog" class="right btn btn-primary btn-sm">
+                                    <i class="fa fa-plus"></i> Add
+                                </button>
+                            </div>
+                        </Title>
+                        <Body>
+                            <table class="table table-bordered">
+                                <thead>
+                                <tr>
+                                    <th>
+                                        <span class="pointer-cursor" @onclick="@(() => Sort("FullName"))">
+                                            Full Name <i class="@(SortIndicator("FullName"))"></i>
+                                        </span>
+                                    </th>
+                                    <th>
+                                        <span class="pointer-cursor" @onclick="@(() => Sort("Title"))">
+                                            Title <i class="@(SortIndicator("Title"))"></i>
+                                        </span>
+                                    </th>
+                                    <th>
+                                        <span class="pointer-cursor" @onclick="@(() => Sort("CreatedDate"))">
+                                            Creation Date <i class="@(SortIndicator("CreatedDate"))"></i>
+                                        </span>
+                                    </th>
+                                    <th>
+                                        Commands
+                                    </th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @if (PagedResult is {Data: { } })
+                                {
+                                    @foreach (var message in PagedResult.Data)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @message.FullName
+                                            </td>
+                                            <td>
+                                                @message.Title
+                                            </td>
+                                            <td>
+                                                @message.CreatedDate.GetPrettyDate()
+                                            </td>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-outline-light" @onclick="() => OpenRemoveDialog(message.Id, message.FullName)">
+                                                    <i class="fa fa-trash text-danger"></i>
+                                                </button>
+                                                
+                                                <button class="btn btn-sm btn-outline-light" @onclick="() => OpenUpdateDialog(message.Id, message.Title)">
+                                                    <i class="fa fa-edit text-primary"></i>
+                                                </button>
+                                                
+                                                <button @onclick="() => OpenChangeStatusDialog(message.Id)" class="btn btn-sm btn-outline-light">
+                                                    <CheckMark Value="@message.IsChecked"
+                                                               FalseText="" TrueText=""
+                                                               FalseCssClass="fas fa-times"
+                                                               TrueCssClass="fas fa-check"
+                                                               FalseSpanCssClass="text-danger"
+                                                               TrueSpanCssClass="text-success"></CheckMark>
+                                                </button>
+                                                
+                                                <button class="btn btn-sm btn-outline-light" @onclick="() => OpenDetailsDialog(message.Id)">
+                                                    <i class="fa fa-exclamation-circle text-info"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                    
+                                </tbody>
+                            </table>
+                            
+                        @if (_pageInfo.ShowPagination)
+                        {
+                            <Pagination PageInfo="_pageInfo"
+                                        SelectedPageEvent="ChangePage"
+                                        ParentNavCssClass="text-center mt-4"
+                                        ParentUlCssClass="pagination pagination-outline"
+                                        PreviousLiCssClass="page-item previous m-1"
+                                        PreviousAnchorCssClass="page-link"
+                                        PreviousIconClass="fas fa-chevron-left"
+                                        HasPreviousButton="PagedResult.HasPreviousPage ?? false"
+                                        FirstLiCssClass="page-item next m-1"
+                                        FirstAnchorCssClass="page-link"
+                                        FirstIconClass="fa fa-arrow-left"
+                                        NextLiCssClass="page-item next m-1"
+                                        NextAnchorCssClass="page-link"
+                                        NextIconClass="fas fa-chevron-right"
+                                        HasNextButton="PagedResult.HasNextPage ?? false"
+                                        LastLiCssClass="page-item next m-1"
+                                        LastAnchorCssClass="page-link"
+                                        LastIconClass="fa fa-arrow-right"
+                                        PagesLiClass="page-item m-1"
+                                        PagesAnchorClass="page-link"
+                                        ActiveLiClass="page-item active m-1"
+                                        ActiveAnchorClass="page-link"
+                                        PageUrl="/Dashboard/ManageContactMessages">
+                                
+                            </Pagination>
+                        }
+                        </Body>
+                    </Card>
+                </Column>
+             </Row>
+         </Container>
+     </ContentMain>
+</Loading>
+
+@if (_warningDialogIsOpen)
+{
+    <ConfirmationDialog Caption="@_warningDialogTitle"
+                        OnClose="@CloseWarningDialog"
+                        Type="ConfirmationDialog.DialogType.Okay">
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">@_warningDialogTitle</h4>
+            <p>
+                @_warningDialogMessage
+            </p>
+        </div>
+    </ConfirmationDialog>
+}
+@if (_showAddDialog)
+{
+    <CreateItemComponent OnCloseDialog="CloseAddDialog"
+                         Title="@_addDialogTitle"
+                         RefereshGridMethodOnSuccess='async () => await GetData()'
+                         OnApiError='() => OpenWarningDialog("Error on API side", "An error occured while trying to call add new message endpoint.")'
+                         OnException='() => OpenWarningDialog("Server Error", "An error occured while trying to add new item.")'>
+        
+    </CreateItemComponent>
+}
+@if (_showChangeStatusDialog)
+{
+    <ChangeItemStatusComponent Title="@_changeStatusTitleMessage"
+                               Message="@_changeStatusDialogMessage"
+                               EntityIdToChangeStatus="@_entityIdToChangeStatus"
+                               OnException='(string msg) => OpenWarningDialog("Server error", $"Server error occured while trying to change the item status.\n {msg}")'
+                               OnApiError='() => OpenWarningDialog("Error on API side", "An error occured while trying to call  change item status api endpoint.")'
+                               OnCloseDialog="CloseChangeStatusDialog"
+                               RefereshGridMethodOnSuccess="async () => await GetData()">
+        
+    </ChangeItemStatusComponent>
+}
+@if (_showRemoveDialog)
+{
+    <RemoveItemComponent OnCloseDialog="CloseRemoveDialog"
+                         Title="@_removeDialogTitle"
+                         Message="@_removeDialogMessage"
+                         EntityIdToRemove="@_removeEntityId"
+                         OnException='() => OpenWarningDialog("Server error", "Server error occured while trying to remove item.")'
+                         OnApiError='() => OpenWarningDialog("Error on API side", "An error occured while trying to call remove api endpoint.")'
+                         RefereshGridMethodOnSuccess="async () => await GetData()">
+        
+    </RemoveItemComponent>
+}
+@if (_showUpdateDialog)
+{
+    <UpdateItemComponent OnCloseDialog="CloseUpdateDialog"
+                         Title="@_updateDialogTitle"
+                         EntityIdToUpdate="@_entityIdToUpdate"
+                         OnException='() => OpenWarningDialog("Server Error", "Server error occured while trying to update item.")'
+                         OnApiError='() => OpenWarningDialog("API Error", "Server error occured while trying to call update api endpoint.")'
+                         RefreshGridMethodOnSuccess="async () => await GetData()"
+                         MessageToUpdateViewModel="MessageToUpdate">
+        
+    </UpdateItemComponent>
+}
+@if (_showDetailsDialog)
+{
+    <GetItemComponent OnCloseDialog="CloseDetailsDialog"
+                         Title="@_detailsDialogTitle"
+                         OnException='() => OpenWarningDialog("Server Error", "Server error occured while trying to update item.")'
+                         OnApiError='() => OpenWarningDialog("API Error", "Server error occured while trying to call update api endpoint.")'
+                         Message="Message">
+        
+    </GetItemComponent>
+}
+
+@code {
+    #region General
+
+    private ResultMessage<IEnumerable<MessageAdminListItemViewModel>> PagedResult { get; set; } = new();
+    PagingInfo _pageInfo = new();
+    private bool _isLoading = false;
+
+    protected override void OnInitialized()
+    {
+        _showAddDialog = false;
+        _showChangeStatusDialog = false;
+        _showUpdateDialog = false;
+        _showRemoveDialog = false;
+        _pageInfo = new PagingInfo() { CurrentPage = 1 };
+    }
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            if (_pageInfo?.PageSize == null || _pageInfo.PageSize == 0)
+            {
+                _pageInfo.CurrentPage = 1;
+                _pageInfo.PageSize = GlobalValues.PageSize;
+                _pageInfo.Descending = true;
+                _pageInfo.OrderByProperty = "CreatedDate";
+            }
+            
+            PagedResult = await GeneralHttpServices.GetPaginated<MessageAdminListItemViewModel>("/api/SecureContactUs",
+                _pageInfo.CurrentPage, GlobalValues.PageSize,
+                _pageInfo.SearchTerm, _pageInfo.OrderByProperty ?? "Id",
+                _pageInfo.Descending ?? true);
+
+            if (PagedResult.TotalItems != null) _pageInfo.TotalItems = PagedResult.TotalItems.Value;
+            _pageInfo.PageSize = GlobalValues.PageSize;
+            _pageInfo.ShowPagination = PagedResult.ShowPagination ?? false;
+            _isLoading = false;
+        }
+        catch (Exception e)
+        {
+            OpenWarningDialog("Error on getting data", "An error occured while trying to get data from API.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+    private async Task GetData()
+    {
+        _isLoading = true;
+        try
+        {
+            PagedResult = await GeneralHttpServices.GetPaginated<MessageAdminListItemViewModel>("/api/SecureContactUs",
+                _pageInfo.CurrentPage, GlobalValues.PageSize,
+                _pageInfo.SearchTerm, _pageInfo.OrderByProperty,
+                _pageInfo.Descending ?? true);
+
+            if (PagedResult.TotalItems != null) _pageInfo.TotalItems = PagedResult.TotalItems.Value;
+            _pageInfo.ShowPagination = PagedResult.ShowPagination ?? false;
+            _isLoading = false;
+        }
+        catch (Exception e)
+        {
+            OpenWarningDialog("Error on getting data", "An error occured while trying to get data from API.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+    #endregion
+    
+    #region Warning Dialog
+
+    private string? _warningDialogTitle;
+    private string? _warningDialogMessage;
+    private bool _warningDialogIsOpen = false;
+
+    private void OpenWarningDialog(string title, string message)
+    {
+        _warningDialogIsOpen = true;
+        _warningDialogTitle = title;
+        _warningDialogMessage = message;
+    }
+
+    private void CloseWarningDialog()
+    {
+        _warningDialogIsOpen = false;
+        _warningDialogTitle = "";
+        _warningDialogMessage = "";
+    }
+    #endregion
+    
+    #region Add Dialog
+
+    private bool _showAddDialog;
+    private string? _addDialogTitle;
+
+    private void CloseAddDialog()
+    {
+        _showAddDialog = false;
+    }
+    private void OpenAddDialog()
+    {
+        _addDialogTitle = "Add new item";
+        _showAddDialog = true;
+    }
+    #endregion
+
+    #region Update Dialog
+
+    private bool _showUpdateDialog;
+    private Guid _entityIdToUpdate;
+    private string? _updateDialogTitle;
+    private UpdateMessageViewModel? MessageToUpdate { get; set;}
+
+    private void CloseUpdateDialog()
+    {
+        _showUpdateDialog = false;
+    }
+
+    private async Task OpenUpdateDialog(Guid id, string title)
+    {
+        try
+        {
+            MessageToUpdate = await GeneralHttpServices.GetOne<UpdateMessageViewModel>($"/api/SecureContactUs/{id}");
+            _entityIdToUpdate = id;
+            _updateDialogTitle = $"Updating {title}";
+            _showUpdateDialog = true;
+        }
+        catch (Exception e)
+        {
+            OpenWarningDialog("API Error", $"An error occured while trying to call api endpoint: \n {e.Message}");
+        }
+    }
+    #endregion
+
+    #region Details Dialog
+
+    private bool _showDetailsDialog;
+    private string? _detailsDialogTitle;
+    private MessageViewModel? Message { get; set; }
+
+    private void CloseDetailsDialog()
+    {
+        _showDetailsDialog = false;
+    }
+
+    private async Task OpenDetailsDialog(Guid id)
+    {
+        try
+        {
+            Message = await GeneralHttpServices.GetOne<MessageViewModel>($"/api/SecureContactUs/{id}");
+            _detailsDialogTitle = "Detials of message";
+            _showDetailsDialog = true;
+        }
+        catch (Exception e)
+        {
+            OpenWarningDialog("API Error", $"An error occured while trying to call api endpoint: \n {e.Message}");
+        }
+    }
+
+    #endregion
+    
+    #region Delete Dialog
+    private Guid _removeEntityId;
+    private string? _removeDialogTitle;
+    private string? _removeDialogMessage;
+    private bool _showRemoveDialog;
+
+    private void CloseRemoveDialog()
+    {
+        _showRemoveDialog = false;
+    }
+    private void OpenRemoveDialog(Guid entityId, string title)
+    {
+        _showRemoveDialog = true;
+        _removeDialogTitle = title;
+        _removeEntityId = entityId;
+        _removeDialogMessage = $"Do you want to delete the message : {title}?";
+    }
+    #endregion
+
+    #region Change Status Dialog
+
+    private bool _showChangeStatusDialog;
+    private Guid _entityIdToChangeStatus;
+    private string? _changeStatusDialogMessage;
+    private string? _changeStatusTitleMessage;
+
+    private void CloseChangeStatusDialog()
+    {
+        _showChangeStatusDialog = false;
+    }
+    private void OpenChangeStatusDialog(Guid id)
+    {
+        _showChangeStatusDialog = true;
+        _entityIdToChangeStatus = id;
+        _changeStatusTitleMessage = "Change Status";
+        _changeStatusDialogMessage = "Are you sure to change the entity status?";
+    }
+    #endregion
+    
+    #region Pagination
+    private async Task ChangePage(int pageNumber)
+    {
+        _pageInfo.CurrentPage = pageNumber;
+        await GetData();
+    }
+    #endregion
+    
+    #region Search and Sort
+    private async Task Sort(string sortField)
+    {
+        if (sortField.Equals(_pageInfo.OrderByProperty))
+        {
+            _pageInfo.Descending = !_pageInfo.Descending;
+        }
+        else
+        {
+            _pageInfo.OrderByProperty = sortField;
+            _pageInfo.Descending = true;
+        }
+        await GetData();
+    }
+    private string SortIndicator(string sortField)
+    {
+        if (sortField.Equals(_pageInfo.OrderByProperty))
+        {
+            return _pageInfo.Descending != null && _pageInfo.Descending.Value ? "fa fa-arrow-down" : "fa fa-arrow-up";
+        }
+        return string.Empty;
+    }
+    #endregion
+
+}
