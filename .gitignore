@@ -27,7 +27,6 @@ src/.vs/
 **/msbuild.log
 **/msbuild.err
 **/msbuild.wrn
-**/appsettings.json
 
 ## others
 [Dd]ebug/
